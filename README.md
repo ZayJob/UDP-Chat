@@ -1,2 +1,2 @@
 # UDP-Chat
-UDP Chat
+UDP Chat in terminal
