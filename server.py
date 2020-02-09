@@ -5,7 +5,7 @@ HOST = socket.gethostbyname(socket.gethostname())
 PORT = 9090
 
 class Server:
-    def __new__(cls,*args, **kwargs):
+    def __new__(cls, *args, **kwargs):
         """Singleton pattern"""
         
         if not hasattr(cls,'_inst'):
@@ -18,24 +18,32 @@ class Server:
         self.clients = []
         self.s = None
     
-    def configurate_socket(self, AddressFamily=None , SocketKind=None) -> None:
+    def server_config(self, AddressFamily=None , SocketKind=None) -> None: #cahnge in next commit
+        """Confing for setting work server"""
+        self._configurate_socket()
+    
+    def _configurate_socket(self, AddressFamily=None , SocketKind=None) -> None:
         """Setting socket, change UPD on TCP"""
         
         if AddressFamily == None and SocketKind == None:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:
             self.s = socket.socket(AddressFamily, SocketKind)
+        
+        self.s.bind((self.host, self.port))
     
     def _connection_processing(self, address: tuple) -> bool:
         """Check client on list clients"""
         
         if address not in self.clients:
             self.clients.append(address)
-        print(address)
+        print("IP - {0} | PORT CLIENT - {1}".format(address[0], address[1]))
         
         return True #change in next commit
         
     def _send_processing(self, data: str, address: tuple) -> None:
+        """Send data all clients"""
+        
         for client in self.clients:
             if address != client:
                 self.s.sendto(data, client)
@@ -49,13 +57,11 @@ class Server:
         
     def start(self) -> None:
         """Stream processing on server"""
-        
-        self.s.bind((self.host, self.port))
-        
+                
         while True:
             try:
                 data, address = self.s.recvfrom(1024)
-                
+
                 connect = self._connection_processing(address)
                 
                 if connect == True:
@@ -71,12 +77,13 @@ class Server:
 
 if __name__ == "__main__":
     """Entry point server"""
+    
     try:
         print("INIT SERVER")
         server = Server(HOST, PORT)
         
         print("CONFIGURATE SERVER")
-        server.configurate_socket()
+        server.server_config()
         
         print("START SERVER")
         server.start()
