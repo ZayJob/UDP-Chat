@@ -83,25 +83,57 @@ class Client:
             except Exception as ex:
                 pass
 
-    def _join_chat(self) -> None:
+    def _join_server(self) -> None:
         """Send data after entry global chat"""
         
         self.s.sendto(("\nName: {0}  => join chat ").format(self.name_client).encode("utf-8"), self.server)
         self.join = True
     
-    def _send_data_to_chat(self, data: str) -> None:
-        """Send data to global chat """
+    def _send_data_to_group(self, data: str, id_group: int) -> None:
+        """Send data to server"""
         
         if data != "":
-            self.s.sendto(("\nName: {0} :: {1}").format(self.name_client, data).encode("utf-8"), self.server)
+            self.s.sendto(("\nName: {0} :: {1} ").format(self.name_client, data).encode("utf-8"), self.server)
         else:
             print("Incorrect data")
-    
-    def _left_chat(self) -> None:
+
+    def _send_data_all_clients(self, data: str) -> None:
+        """Send data to server"""
+        
+        if data != "":
+            self.s.sendto(("\nName: {0} :: {1} ").format(self.name_client, data).encode("utf-8"), self.server)
+        else:
+            print("Incorrect data")
+  
+    def _left_server(self) -> None:
         """Send data after exit global chat"""
         
         self.s.sendto(("\nName: {0}  <= left chat ").format(self.name_client).encode("utf-8"), self.server)
+    
+    def arg_parser(self, data: str) -> int:
+        try:
+            array_data = data.split(" ")
+            if array_data[0] == "createGroup":
+                return (None, 2, " ".join(array_data[1::]))
+            if array_data[0] == "showClients":
+                return (None, 3, " ".join(array_data[1::]))
+            if array_data[0] == "showGroups":
+                return (None, 4, " ".join(array_data[1::]))
+            if int(array_data[0]) >= 0:
+                return (int(array_data[0]),1 , " ".join(array_data[1::]))
+        except Exception as ex:
+            return (None, 0, data)
 
+    def _show_groups():
+        pass
+
+    def _show_clients(self) -> None: fix
+        """Send"""
+        
+        self.s.sendto(("showClients").encode("utf-8"), self.server)
+    
+    def _create_group():
+        pass
  
     def start(self) -> None:
         """Stream processing on client"""
@@ -110,18 +142,29 @@ class Client:
         
         while True:
             if self.join == False:
-                self._join_chat()
+                self._join_server()
             else:
                 try:
                     data = input()
                     
+                    id_group, num_action, data = self.arg_parser(data)
+
                     crypt_data = self._crypted(data)
                     
-                    self._send_data_to_chat(crypt_data)
+                    if num_action == 0:
+                        self._send_data_all_clients(crypt_data)
+                    elif num_action == 1:
+                        self._send_data_to_group(crypt_data, id_group)
+                    elif num_action == 2:
+                        self._create_group()
+                    elif num_action == 3:
+                        self._show_clients()
+                    elif num_action == 4:
+                        self._show_groups()
                     
                     time.sleep(0.2)
                 except Exception as ex:
-                    self._left_chat()
+                    self._left_server()
                     raise
         rT.join()
         self.s.close()

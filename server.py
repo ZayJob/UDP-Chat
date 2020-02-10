@@ -12,9 +12,10 @@ class Server:
             cls._inst = super(Server, cls).__new__(cls)
         return cls._inst
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, key=8194):
         self.host = host
         self.port = port
+        self.key = key
         self.clients = []
         self.s = None
     
@@ -40,21 +41,71 @@ class Server:
         print("IP - {0} | PORT CLIENT - {1}".format(address[0], address[1]))
         
         return True #change in next commit
-        
-    def _send_processing(self, data: str, address: tuple) -> None:
-        """Send data all clients"""
-        
-        for client in self.clients:
-            if address != client:
-                self.s.sendto(data, client)
     
-    def _data_processing(self, data: str) -> None:
+    def _arg_parser(self, data: str) -> int:
+        try:
+            array_data = data.decode("utf-8").split()
+            print(array_data)
+            if array_data[0] == "createGroup":
+                return (None, 2, " ".join(array_data[1::]))
+            if array_data[0] == "showClients":
+                return (None, 3, " ".join(array_data[1::]))
+            if array_data[0] == "showGroups":
+                return (None, 4, " ".join(array_data[1::]))
+            if int(array_data[0]) >= 0:
+                return (int(array_data[0]),1 , " ".join(array_data[1::]))
+        except Exception as ex:
+            return (None, 0, data)
+    
+    def _print_data(self, data: str) -> None:
         """Data processing and output in console"""
         
         server_time = time.strftime("%Y-%M-%D-%H-%M-%S", time.localtime())
         
         print("Time: {0} | Data: {1}".format(server_time, data.decode("utf-8")))
+
+    def _crypted(self, data: str) -> str:
+        """Crypted string"""
         
+        crypt_data = ""
+        for char in data:
+            crypt_data += chr(ord(char)^self.key)
+        return crypt_data
+    
+    def _decrypted(self, data: str) -> str:
+        """Decrypted string"""
+        
+        decrypt_data = ""
+        flag = False
+        for char in data.decode("utf-8"):
+            if char == ":":
+                flag = True
+                decrypt_data += char
+            elif flag == False or char == " ":
+                decrypt_data += char
+            else:
+                decrypt_data += chr(ord(char)^self.key)
+        return decrypt_data
+
+    def _send_data_all_clients(self, data: str, address: tuple) -> None:
+        """Send data all clients"""
+        
+        for client in self.clients:
+            if address != client:
+                self.s.sendto(data, client)
+
+    def _send_information_about_clients(self, address: tuple) -> None: #fix
+        """Send data all clients"""
+        
+        data = ""
+        for client in self.clients:
+            data += str(client[0])
+            data += " "
+            data += str(client[1])
+
+        self.s.sendto(data.encode("utf-8"), address)
+        
+
     def start(self) -> None:
         """Stream processing on server"""
                 
@@ -65,8 +116,21 @@ class Server:
                 connect = self._connection_processing(address)
                 
                 if connect == True:
-                    self._data_processing(data)
-                    self._send_processing(data, address)
+                    self._print_data(data)
+                    
+                    id_chat, num_action, data = self._arg_parser(data)
+                    print(num_action)
+                    
+                    if num_action == 0:
+                        self._send_data_all_clients(data, address)
+                    elif num_action == 1:
+                        pass
+                    elif num_action == 2:
+                        pass
+                    elif num_action == 3:
+                        self._send_information_about_clients(address)
+                    elif num_action == 4:
+                        pass
                 else:
                     raise ConnectionError
                 
