@@ -12,16 +12,19 @@ class Server:
             cls._inst = super(Server, cls).__new__(cls)
         return cls._inst
 
+
     def __init__(self, host: str, port: int, key=8194):
         self.host = host
         self.port = port
         self.key = key
         self.clients = []
         self.s = None
+
     
     def server_config(self, AddressFamily=None , SocketKind=None) -> None: #cahnge in next commit
         """Confing for setting work server"""
         self._configurate_socket()
+
     
     def _configurate_socket(self, AddressFamily=None , SocketKind=None) -> None:
         """Setting socket, change UPD on TCP"""
@@ -32,20 +35,32 @@ class Server:
             self.s = socket.socket(AddressFamily, SocketKind)
         
         self.s.bind((self.host, self.port))
+
     
-    def _connection_processing(self, address: tuple) -> bool:
+    def _connection_processing(self, data: str, address: tuple) -> bool:
         """Check client on list clients"""
         
-        if address not in self.clients:
-            self.clients.append(address)
+        address_server = None
+        
+        data = self._decrypted(data)     
+        array_data = data.split(" ")
+
+        if array_data[0] == "\nName:":
+            address_server = [address, array_data[1]]
+
+            if address_server not in self.clients:
+                self.clients.append(address_server)
+            
+            
         print("IP - {0} | PORT CLIENT - {1}".format(address[0], address[1]))
         
         return True #change in next commit
+
     
     def _arg_parser(self, data: str) -> int:
         try:
             array_data = data.decode("utf-8").split()
-            print(array_data)
+
             if array_data[0] == "createGroup":
                 return (None, 2, " ".join(array_data[1::]))
             if array_data[0] == "showClients":
@@ -56,6 +71,7 @@ class Server:
                 return (int(array_data[0]),1 , " ".join(array_data[1::]))
         except Exception as ex:
             return (None, 0, data)
+
     
     def _print_data(self, data: str) -> None:
         """Data processing and output in console"""
@@ -64,6 +80,7 @@ class Server:
         
         print("Time: {0} | Data: {1}".format(server_time, data.decode("utf-8")))
 
+
     def _crypted(self, data: str) -> str:
         """Crypted string"""
         
@@ -71,6 +88,7 @@ class Server:
         for char in data:
             crypt_data += chr(ord(char)^self.key)
         return crypt_data
+
     
     def _decrypted(self, data: str) -> str:
         """Decrypted string"""
@@ -87,25 +105,38 @@ class Server:
                 decrypt_data += chr(ord(char)^self.key)
         return decrypt_data
 
+
     def _send_data_all_clients(self, data: str, address: tuple) -> None:
         """Send data all clients"""
         
-        for client in self.clients:
+        client_address = [address for address, client_name in self.clients]
+        
+        for client in client_address:
             if address != client:
                 self.s.sendto(data, client)
+
 
     def _send_information_about_clients(self, address: tuple) -> None: #fix
         """Send data all clients"""
         
         data = ""
         for client in self.clients:
-            data += str(client[0])
+            data += str(client[0][0])
+            data += " "
+            data += str(client[0][1])
             data += " "
             data += str(client[1])
 
         self.s.sendto(data.encode("utf-8"), address)
         
 
+    def _create_group(self, data, address) -> None:
+        """Add group to file"""
+        with open("Groups.txt", "r") as file_r
+            with open("Groups.txt", "w") as file_w:
+                pass
+    
+    
     def start(self) -> None:
         """Stream processing on server"""
                 
@@ -113,18 +144,17 @@ class Server:
             try:
                 data, address = self.s.recvfrom(1024)
 
-                connect = self._connection_processing(address)
-                
+                connect = self._connection_processing(data, address)
+
                 if connect == True:
                     self._print_data(data)
-                    
+
                     id_chat, num_action, data = self._arg_parser(data)
-                    print(num_action)
-                    
+
                     if num_action == 0:
                         self._send_data_all_clients(data, address)
                     elif num_action == 1:
-                        pass
+                        self._create_group(data,address)
                     elif num_action == 2:
                         pass
                     elif num_action == 3:

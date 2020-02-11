@@ -12,6 +12,7 @@ class Client:
             cls._inst = super(Client, cls).__new__(cls)
         return cls._inst
 
+
     def __init__(self, host: str, port: int, name: str, key=8194, host_server="", port_server=9090):
         self.host = host
         self.port = port
@@ -22,17 +23,20 @@ class Client:
         self.rT = None
         self.join = False
     
+    
     def client_config(self, AddressFamily=None , SocketKind=None) -> None:
         """Confing for setting work client"""
         
         self._configurate_socket(AddressFamily, SocketKind)
         self._configurate_threading()
     
+    
     def _configurate_threading(self) -> None:
         """Setting threading"""
         
         self.rT = threading.Thread(target=self._receving_data, args=("RecvThread", self.s))
         self.rT.start()
+    
     
     def _configurate_socket(self, AddressFamily, SocketKind) -> None:
         """Setting socket, change UPD on TCP"""
@@ -45,6 +49,7 @@ class Client:
         self.s.bind((HOST, PORT))
         self.s.setblocking(0)
     
+    
     def _crypted(self, data: str) -> str:
         """Crypted string"""
         
@@ -52,6 +57,7 @@ class Client:
         for char in data:
             crypt_data += chr(ord(char)^self.key)
         return crypt_data
+    
     
     def _decrypted(self, data: str) -> str:
         """Decrypted string"""
@@ -68,6 +74,7 @@ class Client:
                 decrypt_data += chr(ord(char)^self.key)
         return decrypt_data
 
+
     def _receving_data(self, name: str, socket) -> None:
         """Receiving data and decrypt for output in terminal"""
         
@@ -83,11 +90,15 @@ class Client:
             except Exception as ex:
                 pass
 
+
+
     def _join_server(self) -> None:
         """Send data after entry global chat"""
         
-        self.s.sendto(("\nName: {0}  => join chat ").format(self.name_client).encode("utf-8"), self.server)
+        crypt_data = self._crypted("\nName: {0}  => join chat ")
+        self.s.sendto((crypt_data).format(self.name_client).encode("utf-8"), self.server)
         self.join = True
+    
     
     def _send_data_to_group(self, data: str, id_group: int) -> None:
         """Send data to server"""
@@ -97,6 +108,7 @@ class Client:
         else:
             print("Incorrect data")
 
+
     def _send_data_all_clients(self, data: str) -> None:
         """Send data to server"""
         
@@ -104,13 +116,15 @@ class Client:
             self.s.sendto(("\nName: {0} :: {1} ").format(self.name_client, data).encode("utf-8"), self.server)
         else:
             print("Incorrect data")
-  
+
+
     def _left_server(self) -> None:
         """Send data after exit global chat"""
         
         self.s.sendto(("\nName: {0}  <= left chat ").format(self.name_client).encode("utf-8"), self.server)
     
-    def arg_parser(self, data: str) -> int:
+    
+    def _arg_parser(self, data: str) -> int:
         try:
             array_data = data.split(" ")
             if array_data[0] == "createGroup":
@@ -124,17 +138,24 @@ class Client:
         except Exception as ex:
             return (None, 0, data)
 
+
     def _show_groups():
         pass
 
-    def _show_clients(self) -> None: fix
-        """Send"""
+
+    def _show_clients(self) -> None: #fix
+        """Send commant on server"""
         
         self.s.sendto(("showClients").encode("utf-8"), self.server)
     
-    def _create_group():
-        pass
- 
+    
+    def _create_group(self, data: str) -> None:
+        """Send commant on server"""
+        
+        self.s.sendto(("createGroup" + " " + data).encode("utf-8"), self.server)
+       
+
+
     def start(self) -> None:
         """Stream processing on client"""
         
@@ -147,7 +168,7 @@ class Client:
                 try:
                     data = input()
                     
-                    id_group, num_action, data = self.arg_parser(data)
+                    id_group, num_action, data = self._arg_parser(data)
 
                     crypt_data = self._crypted(data)
                     
@@ -156,7 +177,7 @@ class Client:
                     elif num_action == 1:
                         self._send_data_to_group(crypt_data, id_group)
                     elif num_action == 2:
-                        self._create_group()
+                        self._create_group(data)
                     elif num_action == 3:
                         self._show_clients()
                     elif num_action == 4:
@@ -168,6 +189,7 @@ class Client:
                     raise
         rT.join()
         self.s.close()
+
 
 if __name__ == "__main__":
     """Entry point client"""
