@@ -95,8 +95,8 @@ class Client:
     def _join_server(self) -> None:
         """Send data after entry global chat"""
         
-        crypt_data = self._crypted("\nName: {0}  => join chat ")
-        self.s.sendto((crypt_data).format(self.name_client).encode("utf-8"), self.server)
+        data_crypted = self._crypted("=> join chat ")
+        self.s.sendto(("\nName: {0} " + data_crypted).format(self.name_client).encode("utf-8"), self.server)
         self.join = True
     
     
@@ -140,7 +140,9 @@ class Client:
 
 
     def _show_groups():
-        pass
+        """Send commant on server"""
+        
+        self.s.sendto(("showGroups").encode("utf-8"), self.server)
 
 
     def _show_clients(self) -> None: #fix
@@ -175,13 +177,13 @@ class Client:
                     if num_action == 0:
                         self._send_data_all_clients(crypt_data)
                     elif num_action == 1:
-                        self._send_data_to_group(crypt_data, id_group)
+                        pass
                     elif num_action == 2:
                         self._create_group(data)
                     elif num_action == 3:
                         self._show_clients()
                     elif num_action == 4:
-                        self._show_groups()
+                        pass
                     
                     time.sleep(0.2)
                 except Exception as ex:

@@ -41,10 +41,11 @@ class Server:
         """Check client on list clients"""
         
         address_server = None
-        
-        data = self._decrypted(data)     
-        array_data = data.split(" ")
 
+        data_decrypt = self._decrypted(data)
+
+        array_data = data_decrypt.split(" ")
+        print(array_data)
         if array_data[0] == "\nName:":
             address_server = [address, array_data[1]]
 
@@ -110,7 +111,7 @@ class Server:
         """Send data all clients"""
         
         client_address = [address for address, client_name in self.clients]
-        
+
         for client in client_address:
             if address != client:
                 self.s.sendto(data, client)
@@ -120,22 +121,51 @@ class Server:
         """Send data all clients"""
         
         data = ""
-        for client in self.clients:
-            data += str(client[0][0])
-            data += " "
-            data += str(client[0][1])
-            data += " "
-            data += str(client[1])
+        for index, client in enumerate(self.clients):
+            
+            if address != client[0]:
+                data += str(index)    
+                data += " - "        
+                data += str(client[0][0])
+                data += " "
+                data += str(client[0][1])
+                data += " "
+                data += str(client[1])
+                data += "\n"
 
         self.s.sendto(data.encode("utf-8"), address)
         
 
-    def _create_group(self, data, address) -> None:
+    def _create_group(self, data: str, address: tuple) -> None: #fix
         """Add group to file"""
-        with open("Groups.txt", "r") as file_r
+        
+        with open("Groups.txt", "r") as file_r:
+            array_groups = file_r.readlines()
             with open("Groups.txt", "w") as file_w:
-                pass
+                line = "\n"
+                line += str(address[1])
+                line += " "
+                line += data
+                
+                array_groups.append(line)
+                file_w.writelines(array_groups)
     
+    
+    def _send_information_about_groups(self, address: tuple) -> None: #fix
+        with open("Groups.txt", "r") as file_r:
+            array_groups = file_r.readlines()
+            data = ""
+            for index, group in enumerate(array_groups):
+                array_data = group.split(" ")
+                data += "\n"
+                data += str(index)
+                data += " "
+                data += array_data[1]
+                data += " "
+                data += array_data[2:]
+
+            self.s.sendto(data.encode("utf-8"), address)    
+
     
     def start(self) -> None:
         """Stream processing on server"""
@@ -150,17 +180,17 @@ class Server:
                     self._print_data(data)
 
                     id_chat, num_action, data = self._arg_parser(data)
-
+                    
                     if num_action == 0:
                         self._send_data_all_clients(data, address)
                     elif num_action == 1:
-                        self._create_group(data,address)
-                    elif num_action == 2:
                         pass
+                    elif num_action == 2:
+                        self._create_group(data, address)
                     elif num_action == 3:
                         self._send_information_about_clients(address)
                     elif num_action == 4:
-                        pass
+                        self._send_information_about_groups(address)
                 else:
                     raise ConnectionError
                 
