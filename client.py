@@ -12,7 +12,6 @@ class Client:
             cls._inst = super(Client, cls).__new__(cls)
         return cls._inst
 
-
     def __init__(self, host: str, port: int, name: str, key=8194, host_server="", port_server=9090):
         self.host = host
         self.port = port
@@ -22,25 +21,19 @@ class Client:
         self.s = None
         self.rT = None
         self.join = False
-    
-    
+        
     def client_config(self, AddressFamily=None , SocketKind=None) -> None:
         """Confing for setting work client"""
-        
         self._configurate_socket(AddressFamily, SocketKind)
         self._configurate_threading()
     
-    
     def _configurate_threading(self) -> None:
         """Setting threading"""
-        
         self.rT = threading.Thread(target=self._receving_data, args=("RecvThread", self.s))
         self.rT.start()
     
-    
     def _configurate_socket(self, AddressFamily, SocketKind) -> None:
         """Setting socket, change UPD on TCP"""
-        
         if AddressFamily == None and SocketKind == None:
             self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         else:
@@ -49,19 +42,15 @@ class Client:
         self.s.bind((HOST, PORT))
         self.s.setblocking(0)
     
-    
     def _crypted(self, data: str) -> str:
-        """Crypted string"""
-        
+        """Crypted string, symmetric method"""
         crypt_data = ""
         for char in data:
             crypt_data += chr(ord(char)^self.key)
         return crypt_data
     
-    
     def _decrypted(self, data: str) -> str:
-        """Decrypted string"""
-        
+        """Decrypted string, symmetric method"""
         decrypt_data = ""
         flag = False
         for char in data.decode("utf-8"):
@@ -74,10 +63,8 @@ class Client:
                 decrypt_data += chr(ord(char)^self.key)
         return decrypt_data
 
-
     def _receving_data(self, name: str, socket) -> None:
         """Receiving data and decrypt for output in terminal"""
-        
         while True:
             try:
                 while True:
@@ -90,41 +77,25 @@ class Client:
             except Exception as ex:
                 pass
 
-
-
     def _join_server(self) -> None:
         """Send data after entry global chat"""
-        
         data_crypted = self._crypted("=> join chat ")
         self.s.sendto(("\nName: {0} " + data_crypted).format(self.name_client).encode("utf-8"), self.server)
         self.join = True
-    
-    
-    def _send_data_to_group(self, data: str, id_group: int) -> None:
-        """Send data to server"""
-        
-        if data != "":
-            self.s.sendto(("\nName: {0} :: {1} ").format(self.name_client, data).encode("utf-8"), self.server)
-        else:
-            print("Incorrect data")
-
 
     def _send_data_all_clients(self, data: str) -> None:
         """Send data to server"""
-        
         if data != "":
             self.s.sendto(("\nName: {0} :: {1} ").format(self.name_client, data).encode("utf-8"), self.server)
         else:
             print("Incorrect data")
 
-
     def _left_server(self) -> None:
         """Send data after exit global chat"""
-        
         self.s.sendto(("\nName: {0}  <= left chat ").format(self.name_client).encode("utf-8"), self.server)
-    
-    
+        
     def _arg_parser(self, data: str) -> int:
+        """Serch args in data, if not find args, generate exceptoin"""
         try:
             array_data = data.split(" ")
             if array_data[0] == "createGroup":
@@ -133,34 +104,31 @@ class Client:
                 return (None, 3, " ".join(array_data[1::]))
             if array_data[0] == "showGroups":
                 return (None, 4, " ".join(array_data[1::]))
-            if int(array_data[0]) >= 0:
-                return (int(array_data[0]),1 , " ".join(array_data[1::]))
+            if array_data[0] == "nameGroup":
+                return (None, 1, " ".join(array_data[1::]))
+            else:
+                raise
         except Exception as ex:
             return (None, 0, data)
 
-
-    def _show_groups():
-        """Send commant on server"""
-        
+    def _show_groups(self):
+        """Send command on server"""
         self.s.sendto(("showGroups").encode("utf-8"), self.server)
 
-
-    def _show_clients(self) -> None: #fix
-        """Send commant on server"""
-        
+    def _show_clients(self) -> None:
+        """Send command on server"""
         self.s.sendto(("showClients").encode("utf-8"), self.server)
     
-    
     def _create_group(self, data: str) -> None:
-        """Send commant on server"""
-        
+        """Send command on server"""
         self.s.sendto(("createGroup" + " " + data).encode("utf-8"), self.server)
-       
 
-
+    def _send_data_to_group(self, data: str) -> None:
+        """Send commant on server"""
+        self.s.sendto(("nameGroup" + " " + data).encode("utf-8"), self.server)
+   
     def start(self) -> None:
         """Stream processing on client"""
-        
         self.name_client = self._crypted(self.name_client)
         
         while True:
@@ -177,13 +145,13 @@ class Client:
                     if num_action == 0:
                         self._send_data_all_clients(crypt_data)
                     elif num_action == 1:
-                        pass
+                        self._send_data_to_group(data)
                     elif num_action == 2:
                         self._create_group(data)
                     elif num_action == 3:
                         self._show_clients()
                     elif num_action == 4:
-                        pass
+                        self._show_groups()
                     
                     time.sleep(0.2)
                 except Exception as ex:
@@ -195,7 +163,6 @@ class Client:
 
 if __name__ == "__main__":
     """Entry point client"""
-    
     try:
         print("INIT CLIENT")
         name_client = input("ENTER NAME: ")
